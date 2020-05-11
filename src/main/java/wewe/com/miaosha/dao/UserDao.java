@@ -9,7 +9,6 @@ import org.springframework.stereotype.Repository;
 import wewe.com.miaosha.domain.User;
 
 @Mapper
-@Repository
 public interface UserDao {
 	
 	@Select("select * from user where id = #{id}")

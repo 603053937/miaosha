@@ -24,5 +24,6 @@ public class GoodsController {
     	model.addAttribute("user", user);
         return "goods_list";
     }
-    
+
+
 }

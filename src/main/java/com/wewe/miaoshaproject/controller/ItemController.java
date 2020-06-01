@@ -19,20 +19,20 @@ import com.wewe.miaoshaproject.service.ItemService;
 
 @Controller("/item")
 @RequestMapping("/item")
-@CrossOrigin(origins = {"*"},allowCredentials = "true")
+@CrossOrigin(origins = {"*"}, allowCredentials = "true")
 public class ItemController extends BaseController {
 
     @Autowired
     private ItemService itemService;
 
     //创建商品的controller
-    @RequestMapping(value = "/create",method = {RequestMethod.POST},consumes={CONTENT_TYPE_FORMED})
+    @RequestMapping(value = "/create", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
-    public CommonReturnType createItem(@RequestParam(name = "title")String title,
-                                       @RequestParam(name = "description")String description,
-                                       @RequestParam(name = "price")BigDecimal price,
-                                       @RequestParam(name = "stock")Integer stock,
-                                       @RequestParam(name = "imgUrl")String imgUrl) throws BusinessException {
+    public CommonReturnType createItem(@RequestParam(name = "title") String title,
+                                       @RequestParam(name = "description") String description,
+                                       @RequestParam(name = "price") BigDecimal price,
+                                       @RequestParam(name = "stock") Integer stock,
+                                       @RequestParam(name = "imgUrl") String imgUrl) throws BusinessException {
         //封装service请求用来创建商品
         ItemModel itemModel = new ItemModel();
         itemModel.setTitle(title);
@@ -48,9 +48,9 @@ public class ItemController extends BaseController {
     }
 
     //商品详情页浏览
-    @RequestMapping(value = "/get",method = {RequestMethod.GET})
+    @RequestMapping(value = "/get", method = {RequestMethod.GET})
     @ResponseBody
-    public CommonReturnType getItem(@RequestParam(name = "id")Integer id){
+    public CommonReturnType getItem(@RequestParam(name = "id") Integer id) {
         ItemModel itemModel = itemService.getItemById(id);
 
         ItemVO itemVO = convertVOFromModel(itemModel);
@@ -60,13 +60,13 @@ public class ItemController extends BaseController {
     }
 
     //商品列表页面浏览
-    @RequestMapping(value = "/list",method = {RequestMethod.GET})
+    @RequestMapping(value = "/list", method = {RequestMethod.GET})
     @ResponseBody
-    public CommonReturnType listItem(){
+    public CommonReturnType listItem() {
         List<ItemModel> itemModelList = itemService.listItem();
 
         //使用stream apiJ将list内的itemModel转化为ITEMVO;
-        List<ItemVO> itemVOList =  itemModelList.stream().map(itemModel -> {
+        List<ItemVO> itemVOList = itemModelList.stream().map(itemModel -> {
             ItemVO itemVO = this.convertVOFromModel(itemModel);
             return itemVO;
         }).collect(Collectors.toList());
@@ -74,20 +74,19 @@ public class ItemController extends BaseController {
     }
 
 
-
-    private ItemVO convertVOFromModel(ItemModel itemModel){
-        if(itemModel == null){
+    private ItemVO convertVOFromModel(ItemModel itemModel) {
+        if (itemModel == null) {
             return null;
         }
         ItemVO itemVO = new ItemVO();
-        BeanUtils.copyProperties(itemModel,itemVO);
-        if(itemModel.getPromoModel() != null){
+        BeanUtils.copyProperties(itemModel, itemVO);
+        if (itemModel.getPromoModel() != null) {
             //有正在进行或即将进行的秒杀活动
             itemVO.setPromoStatus(itemModel.getPromoModel().getStatus());
             itemVO.setPromoId(itemModel.getPromoModel().getId());
             itemVO.setStartDate(itemModel.getPromoModel().getStartDate().toString(DateTimeFormat.forPattern("yyyy-MM-dd HH:mm:ss")));
             itemVO.setPromoPrice(itemModel.getPromoModel().getPromoItemPrice());
-        }else{
+        } else {
             itemVO.setPromoStatus(0);
         }
         return itemVO;

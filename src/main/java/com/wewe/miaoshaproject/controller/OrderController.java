@@ -9,7 +9,6 @@ import com.wewe.miaoshaproject.error.BusinessException;
 import com.wewe.miaoshaproject.error.EmBusinessError;
 import com.wewe.miaoshaproject.response.CommonReturnType;
 import com.wewe.miaoshaproject.service.PromoService;
-import com.wewe.miaoshaproject.service.model.OrderModel;
 import com.wewe.miaoshaproject.service.model.UserModel;
 import com.wewe.miaoshaproject.util.CodeUtil;
 import org.springframework.beans.factory.annotation.Autowired;

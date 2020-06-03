@@ -91,7 +91,7 @@ public class CodeUtil {
 
     public static void main(String[] args) throws Exception {
         //创建文件输出流对象
-        OutputStream out = new FileOutputStream("/Users/hzllb/Desktop/javaworkspace/miaoshaStable/" + System.currentTimeMillis() + ".jpg");
+        OutputStream out = new FileOutputStream("D:\\秒杀项目配置\\" + System.currentTimeMillis() + ".jpg");
         Map<String, Object> map = CodeUtil.generateCodeAndPic();
         ImageIO.write((RenderedImage) map.get("codePic"), "jpeg", out);
         System.out.println("验证码的值为：" + map.get("code"));

@@ -19,6 +19,8 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronizationAdapter;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import javax.annotation.Resource;
 import java.math.BigDecimal;
@@ -54,23 +56,8 @@ public class OrderServiceImpl implements OrderService {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "商品信息不存在");
         }
 
-        UserModel userModel = userService.getUserByIdInCache(userId);
-        if (userModel == null) {
-            throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "用户信息不存在");
-        }
         if (amount <= 0 || amount > 99) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "数量信息不正确");
-        }
-
-        //校验活动信息
-        if (promoId != null) {
-            //（1）校验对应活动是否存在这个适用商品
-            if (promoId.intValue() != itemModel.getPromoModel().getId()) {
-                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息不正确");
-                //（2）校验活动是否正在进行中
-            } else if (itemModel.getPromoModel().getStatus().intValue() != 2) {
-                throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "活动信息还未开始");
-            }
         }
 
         //2.落单减库存
@@ -108,6 +95,14 @@ public class OrderServiceImpl implements OrderService {
         stockLogDO.setStatus(2);
         stockLogDOMapper.updateByPrimaryKeySelective(stockLogDO);
 
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            @Override
+            public void afterCommit() {
+                //异步更新库存
+                boolean mqResult = itemService.asyncDecreaseStock(itemId, amount);
+            }
+
+        });
         //4.返回前端
         return orderModel;
     }

@@ -79,6 +79,16 @@
             <artifactId>maven-project-info-reports-plugin</artifactId>
             <version>3.0.0</version>
         </dependency>
+        <dependency>
+            <groupId>com.google.guava</groupId>
+            <artifactId>guava</artifactId>
+            <version>18.0</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.rocketmq</groupId>
+            <artifactId>rocketmq-client</artifactId>
+            <version>4.3.0</version>
+        </dependency>
     </dependencies>
 
     <build>

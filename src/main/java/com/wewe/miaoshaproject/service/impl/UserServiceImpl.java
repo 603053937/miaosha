@@ -47,11 +47,12 @@ public class UserServiceImpl implements UserService {
         }
         //通过用户id获取对应的用户加密密码信息
         UserPasswordDO userPasswordDO = userPasswordDOMapper.selectByUserId(userDO.getId());
-
+        //封装成Model
         return convertFromDataObject(userDO, userPasswordDO);
     }
 
     @Override
+    //
     @Transactional
     public void register(UserModel userModel) throws BusinessException {
         if (userModel == null) {
@@ -66,12 +67,13 @@ public class UserServiceImpl implements UserService {
         //实现model->dataobject方法
         UserDO userDO = convertFromModel(userModel);
         try {
+            //insertSelective将非空的字段插入数据库,而insert是将所有字段插入,null会覆盖原本已有的数据值
             userDOMapper.insertSelective(userDO);
         } catch (DuplicateKeyException ex) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "手机号已重复注册");
         }
 
-
+        // 将用户密码与用户信息通过userid关联起来
         userModel.setId(userDO.getId());
 
         UserPasswordDO userPasswordDO = convertPasswordFromModel(userModel);

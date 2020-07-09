@@ -25,6 +25,7 @@ import java.util.concurrent.TimeUnit;
 
 @Controller("user")
 @RequestMapping("/user")
+//allowedHeaders 允许跨域传输所有的header参数
 @CrossOrigin(allowCredentials = "true", allowedHeaders = "*")
 public class UserController extends BaseController {
 
@@ -49,6 +50,7 @@ public class UserController extends BaseController {
                                      @RequestParam(name = "password") String password) throws BusinessException, UnsupportedEncodingException, NoSuchAlgorithmException {
         //验证手机号和对应的otpcode相符合
         String inSessionOtpCode = (String) this.httpServletRequest.getSession().getAttribute(telphone);
+        //druid的equals会自动判空
         if (!com.alibaba.druid.util.StringUtils.equals(otpCode, inSessionOtpCode)) {
             throw new BusinessException(EmBusinessError.PARAMETER_VALIDATION_ERROR, "短信验证码不符合");
         }
@@ -75,6 +77,7 @@ public class UserController extends BaseController {
 
 
     //用户获取otp短信接口
+    //consumes： 指定处理请求的提交内容类型（Content-Type），例如application/json, text/html;
     @RequestMapping(value = "/getotp", method = {RequestMethod.POST}, consumes = {CONTENT_TYPE_FORMED})
     @ResponseBody
     public CommonReturnType getOtp(@RequestParam(name = "telphone") String telphone) {
@@ -86,17 +89,16 @@ public class UserController extends BaseController {
         String otpCode = String.valueOf(randomInt);
 
         //将OTP验证码同对应用户的手机号关联，使用httpsession的方式绑定他的手机号与OTPCODE
+        //内部有Threadlocal方法，让每个线程的有单独的request
         httpServletRequest.getSession().setAttribute(telphone, otpCode);
-
         //将OTP验证码通过短信通道发送给用户,省略
         System.out.println("telphone = " + telphone + " & otpCode = " + otpCode);
-
-
         return CommonReturnType.create(null);
     }
 
 
     @RequestMapping("/get")
+    //将controller的方法返回的对象通过适当的转换器转换为指定的格式之后，写入到response对象的body区，通常用来返回JSON数据或者是XML数据
     @ResponseBody
     public CommonReturnType getUser(@RequestParam(name = "id") Integer id) throws BusinessException {
         //调用service服务获取对应id的用户对象并返回给前端
@@ -109,7 +111,6 @@ public class UserController extends BaseController {
 
         //讲核心领域模型用户对象转化为可供UI使用的viewobject
         UserVO userVO = convertFromModel(userModel);
-
 
         //返回通用对象
         return CommonReturnType.create(userVO);

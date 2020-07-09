@@ -160,8 +160,6 @@ public class OrderController extends BaseController {
             public Object call() throws Exception {
                 //加入库存流水init状态
                 String stockLogId = itemService.initStockLog(itemId, amount);
-
-
                 //再去完成对应的下单事务型消息机制
                 if (!mqProducer.transactionAsyncReduceStock(userModel.getId(), itemId, promoId, amount, stockLogId)) {
                     throw new BusinessException(EmBusinessError.UNKNOWN_ERROR, "下单失败");

@@ -60,9 +60,9 @@ public class ItemController extends BaseController {
         return CommonReturnType.create(itemVO);
     }
 
-    @RequestMapping(value = "/publishpromo",method = {RequestMethod.GET})
+    @RequestMapping(value = "/publishpromo", method = {RequestMethod.GET})
     @ResponseBody
-    public CommonReturnType publishpromo(@RequestParam(name = "id")Integer id){
+    public CommonReturnType publishpromo(@RequestParam(name = "id") Integer id) {
         promoService.publishPromo(id);
         return CommonReturnType.create(null);
     }
@@ -74,21 +74,21 @@ public class ItemController extends BaseController {
         ItemModel itemModel = null;
 
         //先取本地缓存
-        itemModel = (ItemModel) cacheService.getFromCommonCache("item_"+id);
+        itemModel = (ItemModel) cacheService.getFromCommonCache("item_" + id);
 
-        if(itemModel == null){
+        if (itemModel == null) {
             //根据商品的id到redis内获取
-            itemModel = (ItemModel) redisTemplate.opsForValue().get("item_"+id);
+            itemModel = (ItemModel) redisTemplate.opsForValue().get("item_" + id);
 
             //若redis内不存在对应的itemModel,则访问下游service
-            if(itemModel == null){
+            if (itemModel == null) {
                 itemModel = itemService.getItemById(id);
                 //设置itemModel到redis内
-                redisTemplate.opsForValue().set("item_"+id,itemModel);
-                redisTemplate.expire("item_"+id,10, TimeUnit.MINUTES);
+                redisTemplate.opsForValue().set("item_" + id, itemModel);
+                redisTemplate.expire("item_" + id, 10, TimeUnit.MINUTES);
             }
             //填充本地缓存
-            cacheService.setCommonCache("item_"+id,itemModel);
+            cacheService.setCommonCache("item_" + id, itemModel);
         }
 
 

@@ -139,15 +139,15 @@ public class UserController extends BaseController {
         }
         //用户登陆服务,用来校验用户登陆是否合法
         UserModel userModel = userService.validateLogin(telphone, this.EncodeByMd5(password));
-        //将登陆凭证加入到用户登陆成功的session内
-        //修改成若用户登录验证成功后将对应的登录信息和登录凭证一起存入redis中
+        //若用户登录验证成功后将对应的登录信息和登录凭证一起存入redis中
         //生成登录凭证token，UUID
         String uuidToken = UUID.randomUUID().toString();
         uuidToken = uuidToken.replace("-", "");
-        //建议token和用户登陆态之间的联系
+        //建立token和用户登陆态之间的联系
+        //通过RedisTemplate类操作SpringBoot内嵌的redis
         redisTemplate.opsForValue().set(uuidToken, userModel);
-        redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);
-        //下发了token
+        redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);//存活时间
+        //将token返回到客户端
         return CommonReturnType.create(uuidToken);
     }
 }

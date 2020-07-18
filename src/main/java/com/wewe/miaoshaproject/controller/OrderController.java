@@ -131,7 +131,7 @@ public class OrderController extends BaseController {
         if (!orderCreateRateLimiter.tryAcquire()) {
             throw new BusinessException(EmBusinessError.RATELIMIT);
         }
-
+        //获取token
         String token = httpServletRequest.getParameterMap().get("token")[0];
         if (StringUtils.isEmpty(token)) {
             throw new BusinessException(EmBusinessError.USER_NOT_LOGIN, "用户还未登陆，不能下单");

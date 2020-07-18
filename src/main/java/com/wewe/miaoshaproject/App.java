@@ -7,7 +7,6 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 
 /**
  * Hello world!
- *
  */
 @SpringBootApplication(scanBasePackages = {"com.wewe.miaoshaproject"})
 @MapperScan("com.wewe.miaoshaproject.dao")

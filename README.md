@@ -1,6 +1,7 @@
 # 秒杀项目
 
 http://112.74.172.117/resources/login.html
+服务器配置：2 vCPU 8GB,nginx反向代理网络25Mbps，其余1Mbps
 
 ## 结构示意图
 
@@ -105,7 +106,8 @@ http://112.74.172.117/resources/login.html
 5. 打开阿里云的网络安全组配置，将80端口开放给外网可访问
 
 ## 优化步骤
-### 1. 内嵌Tomcat配置
+### 一、对访问商品页的优化
+#### 1. 内嵌Tomcat配置
 1. 修改application.properties
     ```
     server.tomcat.accept-count=1000         等待队列长度
@@ -119,11 +121,11 @@ http://112.74.172.117/resources/login.html
     //当客户端发送超过10000个请求则自动断开keepalive链接,防止被大量请求攻击
     protocol.setMaxKeepAliveRequests(10000);
     ```
-### 2. 分布式扩展
+#### 2. 分布式扩展
 1. 连接到mysql服务器上修改系统相关的配置，将对应的用户授予远程连接及后续的所有权限
 2. nginx
 
-    ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200529131351261.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
+    ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200719144028954.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
     1. nginx静态资源部署
        进入nginx根目录下的html下，然后新建resources目录用于存放前端静态资源
     2. nginx动态请求反向代理
@@ -147,35 +149,202 @@ http://112.74.172.117/resources/login.html
                spring.redis.jedis.pool.max-active=50
                spring.redis.jedis.pool.min-idle=20
             ```
-        2. maven导入springboot对redis和session操作的jar包
+        2. maven导入springboot对redis和session操作的jar包,会将session存入到redis中
         3. 编写RedisConfig.java,对redis进行具体设置
     2. 基于token传输类似sessionid:java代码session实现迁移到redis
-        ```
-       //若用户登录验证成功后将对应的登录信息和登录凭证一起存入redis中
-       //生成登录凭证token，UUID
-       String uuidToken = UUID.randomUUID().toString();
-       uuidToken = uuidToken.replace("-", "");
-       //建立token和用户登陆态之间的联系
-       //通过RedisTemplate类操作SpringBoot内嵌的redis
-       redisTemplate.opsForValue().set(uuidToken, userModel);
-       redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);//存活时间 
-       //将token返回到客户端
-       return CommonReturnType.create(uuidToken);
-       ```
-### 3. 缓存优化
-1. reids缓存
-    1. 单机模式
-    
+        1. 将登录token返回客户端并存入redis
+            ```
+           //若用户登录验证成功后将对应的登录信息和登录凭证一起存入redis中
+           //生成登录凭证token，UUID
+           String uuidToken = UUID.randomUUID().toString();
+           uuidToken = uuidToken.replace("-", "");
+           //建立token和用户登陆态之间的联系
+           //通过RedisTemplate类操作SpringBoot内嵌的redis
+           redisTemplate.opsForValue().set(uuidToken, userModel);
+           redisTemplate.expire(uuidToken, 1, TimeUnit.HOURS);//存活时间 
+           //将token返回到客户端
+           return CommonReturnType.create(uuidToken);
+           ```
+        2. 前端将获取到的token存储到localStorage
+#### 3. 缓存优化
+##### 1. reids缓存
+1. 单机模式
+
     ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200601222613781.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
-    2. 哨兵模式
-    
+2. 哨兵模式
+
     ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200601223403863.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
-    
+
     ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200601223342633.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
-    3. 集群cluster模式
+    主从同步,读写分离
+    ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200718171322444.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
+
+3. 集群cluster模式
+    有多个redis服务器，雪花状集群，n读n写，自动竞选出对应master和slave，
+    每台redis服务器和别的服务器都有联系，清楚的知道他们的主从关系，自己所处的地位。
+    只需连接其中任意一台服务器就能只能整个集群的关系，并存储到内存中。get，set操作发送目标也就清楚了。
     
-        读写分离
-    ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200718170629533.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
-2. 热点内存本地缓存
-3. nginx proxy cache缓存
-4. nginx lua缓存
+    ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200719140004592.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
+
+    当某个服务器丢失，集群会自动调整。会向客户端发送reask请求，调整内存中存储的集群关系
+    
+    ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200719140348737.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
+4. 具体实现
+    1. 根据商品的id到redis内获取
+    2. 若redis内不存在对应的itemModel,则访问下游service,并将其存入redis中
+
+5. 缺陷
+    redis是集中式管理缓存,需要使用网络io,对性能有影响
+##### 2. 本地热点缓存
+1. 使用Guaua cache做为本地缓存
+    1. 提供一个并发的hashmap
+    2. 可控制大小和超时时间
+    3. 可配置lru策略
+    4. 线程安全
+2. 特点
+    1. 存放热点数据,大量访问,很少有改动
+    2. 脏读不敏感:每个分布式服务器上都保存着热点数据,本地热点缓存很少有方法改变数据
+    3. 内存可控
+3. 实现步骤
+    1. 根据商品的id到本地缓存内获取
+    2. 若不存在则到redis,下游service中寻找
+    3. 将商品放入缓存
+##### 3. nginx proxy cache缓存
+依靠文件系统存储索引级的文件作为缓存,缓存的文件地址存储在内存中
+经测试性能会下降,所以不采用
+##### 4. nginx lua缓存
+shared dic：共享内存字典，所有worker进程可见，lru淘汰
+1. 在Nginx.conf中配置
+    ```
+    lua_shared_dict my_cache 128m; #name：my_cache，内存大小：128m
+    location /luaitem/get{
+           default_type "application/json";
+           content_by_lua_file ../lua/itemredis.lua;
+    }
+    ```
+2. 到lua目录下创建lua脚本
+    ```
+    # get方法
+    function get_from_cache(key)
+            local cache_ngx = ngx.shared.my_cache # 获取Nginx缓存
+            local value = cache_ngx:get(key)
+            return value
+    end
+    # set方法
+    function set_to_cache(key,value,exptime)
+            if not exptime then
+                    exptime = 0
+            end
+            local cache_ngx = ngx.shared.my_cache
+            local succ,err,forcible = cache_ngx:set(key,value,exptime)
+            return succ
+    end
+    
+    local args = ngx.req.get_uri_args()
+    local id = args["id"]
+    local item_model = get_from_cache("item_"..id)
+    if item_model == nil then
+            local resp = ngx.location.capture("/item/get?id="..id)
+            item_model = resp.body
+            set_to_cache("item_"..id,item_model,1*60)
+    end
+    ngx.say(item_model)
+    ```
+3. http://112.74.172.117/luaitem/get?id=6
+
+### 二、对交易性能的优化
+#### 1. 性能瓶颈
+1. 对交易信息的校验过程会对mysql进行多次访问
+2. 落单减库存的sql操作会加上一个行锁
+3. 生产订单的过程也会对mysql多次访问
+#### 2. 高效交易验证方式
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20200602125232587.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
+##### 1. 用户风控策略优化：
+将商品，用户信息放入redis缓存中并设置有效时间，验证时从缓存中获取
+##### 2. 活动校验策略优化：引入活动发布流程，模型缓存化，紧急下线能力
+1. 扣减库存缓存化,不采用
+    1. 活动发布同步库存进缓存
+    2. 下单交易减缓存库存
+    3. 缓存与数据库不一致,不是好方法,若缓存出现问题,无法回调
+2. 异步同步数据库
+    1. 活动发布同步库存进缓存
+    2. 下单交易减缓存库存
+    3. 异步消息扣减数据库内库存
+        1. 引入rocketmq
+        2. application.properties配置rocketmq的nameserver地址和topic
+        3. MqProducer.java 发出减库存的消息
+           MqConsumer.java 接受消息,到数据库里减库存
+        4. 问题:
+            1. 异步消息发送失败
+            2. 扣减操作执行失败
+            3. 下单失败无法正确回补库存
+3. 库存数据库最终一致性保证:解决少卖问题
+    1. spring提供的一个方法:在事务提交后再执行某个操作
+        ```
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronizationAdapter() {
+            @Override
+            public void afterCommit() {
+                //异步更新库存
+                boolean mqResult = itemService.asyncDecreaseStock(itemId, amount);
+            }
+        });
+        ```
+    2. 在整个订单事务提交完毕后再进行异步更新库存操作
+    3. 使用TransactionMQProducer,transactionMQProducer.sendMessageInTransaction(message, argsMap);提交事务型信息
+    4. sendMessageInTransaction(message, argsMap);
+       内部会执行executeLocalTransaction(Message msg, Object arg)//真正要做的事  创建订单
+    5. 当返回状态为unknown不知道是否成功还是失败时
+       执行checkLocalTransaction(MessageExt msg)//根据是否扣减库存成功，来判断要返回COMMIT,ROLLBACK还是继续UNKNOWN
+    6. checkLocalTransaction(MessageExt msg)通过获取库存流水stockLogDO来判断订单状态
+    7. 库存售罄处理
+        1. 落单减库存时若库存为0,则打上库存售罄标识,加入redis缓存
+        2. 操作后续流程前先在redis中判断是否有售罄标识
+
+### 三、流量削峰
+#### 1. 秒杀令牌
+1. 问题
+    1. 秒杀接口泄露,会被脚本不停刷
+    2. 秒杀验证逻辑和秒杀下单接口强关联
+    3. 秒杀验证逻辑复杂,对交易系统产生无关联负载
+2. 方案
+    1. 秒杀接口需要令牌才能进入
+    2. 秒杀令牌由秒杀活动模块产生
+    3. 下单前需要获得秒杀令牌
+3. 秒杀令牌具体实现:生成令牌的方法PromoServiceImpl.generateSecondKillToken(Integer promoId, Integer itemId, Integer userId)
+#### 2. 秒杀大闸
+1. 问题:秒杀令牌在秒杀活动开始后可以无限制生成,影响系统性能
+2. 原理:
+    1. 利用秒杀令牌的授权原理定制化发牌逻辑,做到大闸功能
+    2. 根据秒杀商品初始库存办法相应数量的令牌
+3. 实现:
+    1. 发布活动时将秒杀大闸限制数字设到redis内
+    2. 在生成令牌时,获取大闸数量,并-1;若-1后仍>=0,则生成令牌
+#### 3. 队列泄洪
+1. 问题:
+    1. 浪涌流量涌入后系统无法应付
+    2. 多库存,多商品等令牌限制能力弱
+2. 原理:
+    1. 排队有时候比并发更高效
+    2. 依靠排队和下游拥塞窗口程度调整队列释放流量大小
+3. 实现: 线程池
+### 四、防刷限流
+#### 1. 验证码生成
+1. CodeUtil生成验证码
+2. 将图片写入HttpServletResponse中显示在前端
+3. 将生成的验证码写入redis中,与用户id绑定
+2. 生成令牌前必须验证码验证
+#### 2. 限流
+1. 令牌桶
+限制速度最大值
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20200603210155875.png?x-oss-process=image/watermark,type_ZmFuZ3poZW5naGVpdGk,shadow_10,text_aHR0cHM6Ly9ibG9nLmNzZG4ubmV0L3dld2Vib3k=,size_16,color_FFFFFF,t_70)
+2. 漏桶
+限制速度,平滑流量
+![在这里插入图片描述](https://img-blog.csdnimg.cn/20200603210237535.png)  
+3. 实现
+使用google的guava的RateLimter
+private RateLimiter orderCreateRateLimiter = RateLimiter.create(300);
+在下单前用tryAcquire()获取令牌
+    if (!orderCreateRateLimiter.tryAcquire()) {
+        throw new BusinessException(EmBusinessError.RATELIMIT);
+    }
+当令牌不足,线程会陷入睡眠一段时间,才可以继续操作.

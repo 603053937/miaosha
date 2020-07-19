@@ -72,6 +72,7 @@ public class PromoServiceImpl implements PromoService {
         redisTemplate.opsForValue().set("promo_door_count_"+promoId,itemModel.getStock().intValue() * 5);
     }
 
+    //生成秒杀令牌
     @Override
     public String generateSecondKillToken(Integer promoId, Integer itemId, Integer userId) {
 

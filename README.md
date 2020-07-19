@@ -341,10 +341,15 @@ shared dic：共享内存字典，所有worker进程可见，lru淘汰
 限制速度,平滑流量
 ![在这里插入图片描述](https://img-blog.csdnimg.cn/20200603210237535.png)  
 3. 实现
-使用google的guava的RateLimter
-private RateLimiter orderCreateRateLimiter = RateLimiter.create(300);
-在下单前用tryAcquire()获取令牌
+
+    使用google的guava的RateLimter
+    ```
+    private RateLimiter orderCreateRateLimiter = RateLimiter.create(300);
+    ```
+    在下单前用tryAcquire()获取令牌
+    ```
     if (!orderCreateRateLimiter.tryAcquire()) {
         throw new BusinessException(EmBusinessError.RATELIMIT);
     }
-当令牌不足,线程会陷入睡眠一段时间,才可以继续操作.
+    ```
+    当令牌不足,线程会陷入睡眠一段时间,提前获取下一秒的令牌,然后才可以继续操作.

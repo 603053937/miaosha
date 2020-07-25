@@ -1,6 +1,7 @@
 # 秒杀项目
 
 http://112.74.172.117/resources/login.html
+
 服务器配置：2 vCPU 8GB,nginx反向代理网络25Mbps，其余1Mbps
 
 ## 结构示意图
@@ -196,7 +197,7 @@ http://112.74.172.117/resources/login.html
 5. 缺陷
     redis是集中式管理缓存,需要使用网络io,对性能有影响
 ##### 2. 本地热点缓存
-1. 使用Guaua cache做为本地缓存
+1. 使用Guava cache做为本地缓存
     1. 提供一个并发的hashmap
     2. 可控制大小和超时时间
     3. 可配置lru策略
